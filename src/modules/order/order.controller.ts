@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Controller,
   Get,
@@ -6,6 +8,7 @@ import {
   Patch,
   Param,
   Delete,
+  BadRequestException,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -47,6 +50,26 @@ export class OrderController {
     @Body() body: { userId: number; items: { name: string; price: number }[] },
   ) {
     return this.orderService.createOrderTransactional(body.userId, body.items);
+  }
+
+  @Post('tx-advanced')
+  async createOrderAdvancedTransactional(
+    @Body() body: { userId: number; items: { name: string; price: number }[] },
+  ) {
+    try {
+      return await this.orderService.createOrderAdvancedTransactional(
+        body.userId,
+        body.items,
+      );
+    } catch (error) {
+      // Puedes personalizar el mensaje según el error
+      throw new BadRequestException({
+        message:
+          'No se pudo crear la orden: ' +
+          (error.message || 'Error desconocido'),
+        cause: error.message,
+      });
+    }
   }
 
   @Get()

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { setDataSource } from './common/transactional.decorator';
+import { setDefaultDataSource } from './common/transactional-advanced.decorator';
 import { DataSource } from 'typeorm';
 
 async function bootstrap() {
@@ -17,6 +18,7 @@ async function bootstrap() {
 
   const dataSource = app.get(DataSource); // <-- Esto obtiene el DataSource de TypeORM
   setDataSource(dataSource); // <-- Esto lo pasa al decorador
+  setDefaultDataSource(dataSource);
   await app.listen(process.env.PORT ?? 3000);
 }
 bootstrap();
