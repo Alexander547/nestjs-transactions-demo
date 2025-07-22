@@ -6,6 +6,8 @@ import { DataSource } from 'typeorm';
 import { User } from './entities/user.entity';
 import { NotificationService } from '../notification/notification.service';
 import { ProfileService } from '../profile/profile.service';
+import { Transactional } from '../../common/transactional.decorator';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class UserService {
@@ -47,6 +49,70 @@ export class UserService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * Crea un usuario, su perfil y envía notificación, todo dentro de una transacción.
+   *
+   * Este método está decorado con @Transactional(), por lo que:
+   * - Todas las operaciones de base de datos se ejecutan en una única transacción.
+   * - Si ocurre un error en cualquier paso, se hace rollback de todo.
+   * - El EntityManager transaccional se inyecta como último argumento.
+   *
+   * @param email Email del usuario
+   * @param name Nombre del usuario
+   * @param phone Teléfono del usuario
+   * @param bio Biografía para el perfil
+   * @param manager (Inyectado automáticamente) EntityManager transaccional
+   * @returns El usuario creado
+   */
+  @Transactional()
+  async createUserTransactional(
+    email: string,
+    name: string,
+    phone: string,
+    bio: string,
+    manager?: EntityManager,
+  ) {
+    // Usar el EntityManager transaccional
+    const user = await manager!.save(User, {
+      email,
+      name,
+      phone,
+    });
+    await this.profileService.createProfile(bio, user, manager!);
+    await this.notificationService.sendWelcome(email, manager!);
+    return user;
+  }
+
+  /**
+   * Crea solo el usuario dentro de una transacción.
+   *
+   * Este método está decorado con @Transactional(), por lo que:
+   * - Todas las operaciones de base de datos se ejecutan en una única transacción.
+   * - Si ocurre un error, se hace rollback.
+   * - El EntityManager transaccional se inyecta como último argumento.
+   *
+   * @param email Email del usuario
+   * @param name Nombre del usuario
+   * @param phone Teléfono del usuario
+   * @param manager (Inyectado automáticamente) EntityManager transaccional
+   * @returns El usuario creado
+   */
+  @Transactional()
+  async createUserOnlyTransactional(
+    email: string,
+    name: string,
+    phone: string,
+    manager?: EntityManager,
+  ) {
+    // Solo crea el usuario usando el EntityManager transaccional
+    const user = await manager!.save(User, {
+      email,
+      name,
+      phone,
+    });
+    return user;
   }
 
   findAll() {
