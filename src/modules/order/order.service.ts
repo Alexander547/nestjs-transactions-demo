@@ -163,6 +163,45 @@ export class OrderService {
   }
 
   /**
+   * Ejemplo de transacción anidada: este método inicia una transacción y llama a otro método decorado,
+   * pasando el EntityManager transaccional. Ambos métodos comparten la misma transacción.
+   */
+  @TransactionalAdvanced({ isolationLevel: 'SERIALIZABLE', logErrors: true })
+  async crearOrdenConSuborden(
+    userId: number,
+    items: { name: string; price: number }[],
+    subItems: { name: string; price: number }[],
+    manager?: EntityManager,
+  ): Promise<{ orden: Order; suborden: Order }> {
+    const orden = await this.createOrderAdvancedTransactional(
+      userId,
+      items,
+      manager,
+    );
+    const suborden = await this.crearSubOrden(userId, subItems, manager);
+    return { orden, suborden };
+  }
+
+  /**
+   * Método hijo en una transacción anidada: si recibe un manager, no crea una nueva transacción.
+   */
+  @TransactionalAdvanced({ isolationLevel: 'SERIALIZABLE', logErrors: true })
+  async crearSubOrden(
+    userId: number,
+    items: { name: string; price: number }[],
+    manager?: EntityManager,
+  ): Promise<Order> {
+    const user = await manager!.findOneByOrFail(User, { id: userId });
+    const order = new Order();
+    order.user = user;
+    order.total = items.reduce((sum, item) => sum + item.price, 0);
+    const savedOrder = await manager!.save(Order, order);
+    await this.orderItemService.createMany(items, savedOrder, manager!);
+    await this.notificationService.sendOrderCreated(user, savedOrder, manager!);
+    return savedOrder;
+  }
+
+  /**
    * Crea una orden y sus ítems en la base de datos secundaria, y envía notificación.
    *
    * Este método demuestra el uso de transacciones sobre un DataSource alternativo usando el decorador avanzado.

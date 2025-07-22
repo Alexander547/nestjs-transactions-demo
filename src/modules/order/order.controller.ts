@@ -72,6 +72,31 @@ export class OrderController {
     }
   }
 
+  @Post('tx-anidada')
+  async createOrderNestedTransactional(
+    @Body()
+    body: {
+      userId: number;
+      items: { name: string; price: number }[];
+      subItems: { name: string; price: number }[];
+    },
+  ) {
+    try {
+      return await this.orderService.crearOrdenConSuborden(
+        body.userId,
+        body.items,
+        body.subItems,
+      );
+    } catch (error) {
+      throw new BadRequestException({
+        message:
+          'No se pudo crear la orden anidada: ' +
+          (error.message || 'Error desconocido'),
+        cause: error.message,
+      });
+    }
+  }
+
   @Get()
   findAll() {
     return this.orderService.findAll();
