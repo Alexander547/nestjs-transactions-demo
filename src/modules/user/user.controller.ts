@@ -47,6 +47,43 @@ export class UserController {
     };
   }
 
+  @Post('tx')
+  async crearUsuarioTransaccional(
+    @Body()
+    createUserDto: {
+      email: string;
+      name: string;
+      phone: string;
+      bio: string;
+    },
+  ) {
+    const user = await this.userService.createUserTransactional(
+      createUserDto.email,
+      createUserDto.name,
+      createUserDto.phone,
+      createUserDto.bio,
+    );
+    return {
+      message: 'Usuario creado con perfil y notificación (transaccional)',
+      user,
+    };
+  }
+
+  @Post('tx-only')
+  async crearSoloUsuarioTransaccional(
+    @Body() createUserDto: { email: string; name: string; phone: string },
+  ) {
+    const user = await this.userService.createUserOnlyTransactional(
+      createUserDto.email,
+      createUserDto.name,
+      createUserDto.phone,
+    );
+    return {
+      message: 'Usuario creado (solo usuario, transaccional)',
+      user,
+    };
+  }
+
   @Get()
   findAll() {
     return this.userService.findAll();

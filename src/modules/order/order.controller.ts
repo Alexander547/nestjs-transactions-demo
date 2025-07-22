@@ -42,6 +42,13 @@ export class OrderController {
     );
   }
 
+  @Post('tx')
+  async createOrderTransactional(
+    @Body() body: { userId: number; items: { name: string; price: number }[] },
+  ) {
+    return this.orderService.createOrderTransactional(body.userId, body.items);
+  }
+
   @Get()
   findAll() {
     return this.orderService.findAll();

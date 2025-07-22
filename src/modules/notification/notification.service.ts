@@ -22,6 +22,17 @@ export class NotificationService {
     return 'This action adds a new notification';
   }
 
+  /**
+   * Envía una notificación de bienvenida a un usuario.
+   *
+   * Este método está diseñado para ser usado dentro de métodos decorados con @Transactional(),
+   * por lo que espera recibir un EntityManager transaccional como argumento.
+   * Si ocurre un error, la transacción será revertida por el método superior.
+   *
+   * @param email Email del usuario destinatario
+   * @param manager EntityManager transaccional (proporcionado por el decorador)
+   * @returns La notificación creada
+   */
   async sendWelcome(email: string, manager: EntityManager) {
     try {
       if (email.includes('fail')) {
@@ -55,6 +66,18 @@ export class NotificationService {
     }
   }
 
+  /**
+   * Envía una notificación cuando se crea una orden.
+   *
+   * Este método está diseñado para ser usado dentro de métodos decorados con @Transactional(),
+   * por lo que espera recibir un EntityManager transaccional como argumento.
+   * Si ocurre un error, la transacción será revertida por el método superior.
+   *
+   * @param user Usuario destinatario
+   * @param order Orden creada
+   * @param manager EntityManager transaccional (proporcionado por el decorador)
+   * @returns La notificación creada
+   */
   async sendOrderCreated(user: User, order: Order, manager: EntityManager) {
     if (order.total > 10000) {
       throw new Error('Total demasiado alto para notificación de prueba');

@@ -12,6 +12,18 @@ export class OrderItemService {
     return 'This action adds a new orderItem';
   }
 
+  /**
+   * Crea múltiples ítems de orden asociados a una orden.
+   *
+   * Este método está diseñado para ser usado dentro de métodos decorados con @Transactional(),
+   * por lo que espera recibir un EntityManager transaccional como argumento.
+   * Si ocurre un error, la transacción será revertida por el método superior.
+   *
+   * @param items Lista de ítems a crear
+   * @param order Orden a la que se asocian los ítems
+   * @param manager EntityManager transaccional (proporcionado por el decorador)
+   * @returns Lista de ítems creados
+   */
   async createMany(
     items: CreateOrderItemDto[],
     order: Order,

@@ -4,12 +4,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { DataSource, EntityManager, Transaction } from 'typeorm';
+import { DataSource, EntityManager } from 'typeorm';
 import { NotificationService } from '../notification/notification.service';
 import { User } from '../user/entities/user.entity';
 import { Order } from './entities/order.entity';
 import { OrderItem } from '../order-item/entities/order-item.entity';
 import { OrderItemService } from '../order-item/order-item.service';
+import { Transactional } from '../../common/transactional.decorator';
 
 @Injectable()
 export class OrderService {
@@ -91,6 +92,46 @@ export class OrderService {
       throw error;
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  /**
+   * Crea una orden y sus ítems relacionados, y envía notificación, todo dentro de una transacción.
+   *
+   * Este método está decorado con @Transactional(), por lo que:
+   * - Todas las operaciones de base de datos se ejecutan en una única transacción.
+   * - Si ocurre un error en cualquier paso, se hace rollback de todo.
+   * - El EntityManager transaccional se inyecta como último argumento.
+   *
+   * @param userId ID del usuario que realiza la orden
+   * @param items Lista de ítems a agregar a la orden
+   * @param manager (Inyectado automáticamente) EntityManager transaccional
+   * @returns La orden creada
+   */
+  @Transactional()
+  async createOrderTransactional(
+    userId: number,
+    items: { name: string; price: number }[],
+    manager?: EntityManager,
+  ): Promise<Order> {
+    try {
+      const user = await manager!.findOneByOrFail(User, { id: userId });
+      const order = new Order();
+      order.user = user;
+      order.total = items.reduce((sum, item) => sum + item.price, 0);
+      const savedOrder = await manager!.save(Order, order);
+      await this.orderItemService.createMany(items, savedOrder, manager!);
+      await this.notificationService.sendOrderCreated(
+        user,
+        savedOrder,
+        manager!,
+      );
+      return savedOrder;
+    } catch (error) {
+      throw new BadRequestException({
+        message: 'Error al crear la orden con sus items (transaccional)',
+        cause: error.message,
+      });
     }
   }
 
